@@ -10,7 +10,7 @@ def drop(dropProbability):
     return random.random() < dropProbability
 
 # simulation structure
-def simulation():
+def simulation(dropProbability):
     # num nodes
     n = 100 
 
@@ -18,7 +18,6 @@ def simulation():
     complete = False
     round = 1
     nodeList = [[] for i in range(n)]
-    dropProbability = 0.1
     
     # loop to send/ receive messages from every node
     while(not(complete)):
@@ -50,18 +49,31 @@ def simulation():
             round += 1  
 
 # constructs box plot, given number of trials and results
-def makeBoxplot(results):
-    box_plot_data = results
-    plt.boxplot(box_plot_data)
+def makeBoxplot(resultsDict):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    boxplotData = resultsDict.values()
+    ax.boxplot(boxplotData)
+    ax.set_xticklabels(resultsDict.keys())
+    ax.set_xlabel("Message Loss Rate")
+    ax.set_ylabel("Number of Rounds")
     plt.show()
 
 # runs simulation and creates boxpot
 def run():
     trials = 500
-    results = []
+    resultsDict = {}
+    results1 = []
+    results2 = []
+    results3 = []
     for i in range(trials):
-        results.append(simulation())
-    makeBoxplot(results)
+        results1.append(simulation(0.1))
+        results2.append(simulation(0.2))
+        results3.append(simulation(0.3))
+    resultsDict.update({0.1 : results1})
+    resultsDict.update({0.2 : results2})
+    resultsDict.update({0.3 : results3})
+    makeBoxplot(resultsDict)
 
 # run program
 run()
