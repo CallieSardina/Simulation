@@ -3,6 +3,7 @@
 ## Overview
 
 We are creating a simulation for testing AC, SmallAC, BAC, and SmallBAC algorithm performance over a synchronous, lossy network.
+Thus far, I have set up a simulation for sending and receiving messages (via queue), simulating the loss by having a set probability that a message will be dropped.
 
 ### Functions 
 #### simulation
