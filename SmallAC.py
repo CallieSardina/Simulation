@@ -94,7 +94,8 @@ def simulation(n, dropProbability, f):
     complete = False
     round = 1
     nodes = createNodes(n)
-    p_end = int(calcPEnd(0.001))
+    epsilon = 0.001
+    p_end = int(calcPEnd(epsilon))
 
     # for output data - the rounds it took node i to reach p_end is stores in rounds[i]
     rounds = [-1 for i in range(n)]
@@ -124,7 +125,7 @@ def simulation(n, dropProbability, f):
             if(not(nodes[i] in nodesToCrash and crash(crashProbability))):
                 M[i] = receive(nodes[i], messages, dropProbability, n)
 
-        # logic for SmallAC
+        # logic for running SmallAC
         for i in range(n):
             if(not(nodes[i] in nodesToCrash and crash(crashProbability))):
                 out = smallAC(nodes[i], M[i], n, f, p_end)
@@ -138,10 +139,24 @@ def simulation(n, dropProbability, f):
             else:
                 complete = True
         if(complete):
+            if(checkEAgreement(nodes, epsilon)):
+                print("Epsilon-agreement is satisfied.")
             return rounds
         else:
-            round += 1
+            round += 1      
 
+# logic to check that epsilon-agreement is satisfied 
+# -- all fault-free nodes outputs are within epsilon of each other
+def checkEAgreement(nodes, epsilon):
+    eAgree = False
+    for node_i in nodes:
+        for node_j in nodes:
+            if(not(abs(node_i.v - node_j.v) <= epsilon)):
+                eAgree = False
+                break
+            else:
+                eAgree = True
+    return eAgree
            
 # run simulation 
 # any outputs equal to -1 represent crashed nodes  
