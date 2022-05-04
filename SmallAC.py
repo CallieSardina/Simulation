@@ -18,7 +18,7 @@ def crash(crashProbability):
     return random.random() < crashProbability
 
 # creates nodes according to initializations for SmallAC
-def createNodes(n):
+def initializeSmallAC(n):
     nodes = []
     for i in range(n):
         x_i = random.random()
@@ -61,7 +61,7 @@ def store(v_j, node):
         if(v_j > node.v_max):
             node.v_max = v_j
 
-# SamllAC algorithm
+# Algorithm SamllAC 
 def smallAC(node, M, n, f, p_end):
     for m_j in M:
         #jump to future phase
@@ -87,15 +87,16 @@ def smallAC(node, M, n, f, p_end):
     return -1
 
 
+
 # simulation structure
 def simulation(n, dropProbability, f):
 
     # initialize simulation settings
     complete = False
     round = 1
-    nodes = createNodes(n)
+    nodes = initializeSmallAC(n)
     epsilon = 0.001
-    p_end = int(calcPEnd(epsilon))
+    p_end = int(calcPEnd(epsilon)) + 1
 
     # for output data - the rounds it took node i to reach p_end is stores in rounds[i]
     rounds = [-1 for i in range(n)]
@@ -130,7 +131,8 @@ def simulation(n, dropProbability, f):
             if(not(nodes[i] in nodesToCrash and crash(crashProbability))):
                 out = smallAC(nodes[i], M[i], n, f, p_end)
                 if(out == 1):
-                    rounds[i] = round 
+                    if(rounds[i] == -1):
+                        rounds[i] = round 
 
         for i in range(n):
             if(rounds[i] == -1 and not(nodes[i] in nodesToCrash)):
@@ -139,7 +141,7 @@ def simulation(n, dropProbability, f):
             else:
                 complete = True
         if(complete):
-            if(checkEAgreement(nodes, epsilon)):
+            if(checkEAgreement(nodes, nodesToCrash, epsilon)):
                 print("Epsilon-agreement is satisfied.")
             return rounds
         else:
@@ -147,15 +149,17 @@ def simulation(n, dropProbability, f):
 
 # logic to check that epsilon-agreement is satisfied 
 # -- all fault-free nodes outputs are within epsilon of each other
-def checkEAgreement(nodes, epsilon):
+def checkEAgreement(nodes, nodesToCrash, epsilon):
     eAgree = False
     for node_i in nodes:
-        for node_j in nodes:
-            if(not(abs(node_i.v - node_j.v) <= epsilon)):
-                eAgree = False
-                break
-            else:
-                eAgree = True
+        if(not(node_i in nodesToCrash)):
+            for node_j in nodes:
+                if(not(node_j in nodesToCrash)):
+                    if(not(abs(node_i.v - node_j.v) <= epsilon)):
+                        eAgree = False
+                        break
+                    else:
+                        eAgree = True
     return eAgree
            
 # run simulation 
