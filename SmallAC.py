@@ -86,8 +86,6 @@ def smallAC(node, M, n, f, p_end):
                     return 1
     return -1
 
-
-
 # simulation structure
 def simulation(n, dropProbability, f):
 
@@ -104,13 +102,18 @@ def simulation(n, dropProbability, f):
     # decide which nodes will crash and in what/ some round
     # f nodes will crash, as specified by function call
     nodesToCrash = random.sample(nodes, f)
-    crashProbability  = 0.3
+    crashProbability  = 0.01
+    crashedNodes = []
 
     # loop to send/ receive messages from every node 
     while(not(complete)):
         # broadcast <i, v_i, p_i> to all
+        for node in nodesToCrash:
+            if node not in crashedNodes and crash(crashProbability):
+                crashedNodes.append(node)
+
         for i in range(n):
-            if(not(nodes[i] in nodesToCrash and crash(crashProbability))):
+            if(nodes[i] not in crashedNodes):
                 message = Message.Message(nodes[i].i, nodes[i].v, nodes[i].p)
                 broadcast(message)
             else:
@@ -123,38 +126,38 @@ def simulation(n, dropProbability, f):
             messages[i] = queue.get()
         M = [[] for i in range(n)]
         for i in range(n):
-            if(not(nodes[i] in nodesToCrash and crash(crashProbability))):
+            if(nodes[i] not in crashedNodes):
                 M[i] = receive(nodes[i], messages, dropProbability, n)
 
         # logic for running SmallAC
         for i in range(n):
-            if(not(nodes[i] in nodesToCrash and crash(crashProbability))):
+            if(nodes[i] not in crashedNodes):
                 out = smallAC(nodes[i], M[i], n, f, p_end)
                 if(out == 1):
                     if(rounds[i] == -1):
                         rounds[i] = round 
 
         for i in range(n):
-            if(rounds[i] == -1 and not(nodes[i] in nodesToCrash)):
+            if(rounds[i] == -1 and nodes[i] not in crashedNodes):
                 complete = False
                 break
             else:
                 complete = True
         if(complete):
-            if(checkEAgreement(nodes, nodesToCrash, epsilon)):
-                print("Epsilon-agreement is satisfied.")
-            return rounds
+            if(checkEAgreement(nodes, crashedNodes, epsilon)):
+                #print("Epsilon-agreement is satisfied.")
+                return rounds
         else:
             round += 1      
 
 # logic to check that epsilon-agreement is satisfied 
 # -- all fault-free nodes outputs are within epsilon of each other
-def checkEAgreement(nodes, nodesToCrash, epsilon):
+def checkEAgreement(nodes, crashedNodes, epsilon):
     eAgree = False
     for node_i in nodes:
-        if(not(node_i in nodesToCrash)):
+        if(not(node_i in crashedNodes)):
             for node_j in nodes:
-                if(not(node_j in nodesToCrash)):
+                if(not(node_j in crashedNodes)):
                     if(not(abs(node_i.v - node_j.v) <= epsilon)):
                         eAgree = False
                         break
@@ -164,10 +167,72 @@ def checkEAgreement(nodes, nodesToCrash, epsilon):
            
 # run simulation 
 # any outputs equal to -1 represent crashed nodes  
-outputs = simulation(10, 0.3, 2)
-for i in range(len(outputs)):
-    print("Node ", i, "made it to p_end at round: ", outputs[i])
+#final_round = []
+#for i in range(10):
+#    outputs = simulation(100, 0.1, 49)
+#    final_round.append(max(outputs))
+#    print("FINAL ROUND: ", final_round[i])
+#crashedCount = 0
+#for i in range(len(outputs)):
+#    if(outputs[i] == -1):
+#        crashedCount +=1
+#    print("Node ", i, "made it to p_end at round: ", outputs[i])
+#print("NODES CRASHED: ", crashedCount)
 
+def getNumCrashes(outputs):
+    crashedCount = 0
+    for i in range(len(outputs)):
+        if(outputs[i] == -1):
+            crashedCount +=1
+    print("NODES CRASHED: ", crashedCount)
 
+# constructs box plot, given number of trials and results, for task1
+def makeBoxplot_smallAC(resultsDict):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    boxplotData = resultsDict.values()
+    ax.boxplot(boxplotData)
+    ax.set_xticklabels(resultsDict.keys())
+    ax.set_xlabel("Message Loss Rate")
+    ax.set_ylabel("final_round")
+    plt.savefig('smallAC-test-0.pdf')
+    plt.show()
 
+# runs simulation and creates boxplot
+# runs each loss rate (10%, 20%, 30%, 40%, 50%, 60%) 10 times, outputing result data to task1.txt
+def run_task_smallAC():
+    trials = 10
+    resultsDict = {}
+    final_round10 = []
+    final_round20 = []
+    final_round30 = []
+    final_round40 = []
+    final_round50 = []
+    final_round60 = []
+    for i in range(trials):
+        final_round10.append(max(simulation(100, 0.1, 49)))
+        getNumCrashes(final_round10)
+        final_round20.append(max(simulation(100, 0.2, 49)))
+        getNumCrashes(final_round20)
+        final_round30.append(max(simulation(100, 0.3, 49)))
+        getNumCrashes(final_round30)
+        final_round40.append(max(simulation(100, 0.4, 49)))
+        getNumCrashes(final_round40)
+        final_round50.append(max(simulation(100, 0.5, 49)))
+        getNumCrashes(final_round50)
+        final_round60.append(max(simulation(100, 0.6, 49)))
+        getNumCrashes(final_round60)
+    resultsDict.update({0.1 : final_round10})
+    resultsDict.update({0.2 : final_round20})
+    resultsDict.update({0.3 : final_round30})
+    resultsDict.update({0.4 : final_round40})
+    resultsDict.update({0.5 : final_round50})
+    resultsDict.update({0.6 : final_round60})
 
+    file = open("smallACSimulation_0.txt", "w")
+    file.write(str(resultsDict))
+    file.close()
+
+    makeBoxplot_smallAC(resultsDict)
+
+run_task_smallAC()
