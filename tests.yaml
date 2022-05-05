@@ -1,0 +1,11 @@
+# tests.yaml file
+
+numTrials: 10
+numNodes: 100
+numFaultyNodes: 49
+crashProbability: 0.01
+randomSeed: 2439714322249655263 # from generated random int 
+
+
+
+
