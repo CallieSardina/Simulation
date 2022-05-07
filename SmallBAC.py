@@ -30,7 +30,7 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
         return random.random() < crashProbability
 
     # creates nodes according to initializations for SmallAC
-    def initializeSmallAC(n):
+    def initializeSmallBAC(n):
         nodes = []
         for i in range(n):
             x_i = random.random()
@@ -107,7 +107,7 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
         # initialize simulation settings
         complete = False
         round = 1
-        nodes = initializeSmallAC(n)
+        nodes = initializeSmallBAC(n)
         epsilon = 0.001
         p_end = int(calcPEnd(epsilon)) + 1
 
