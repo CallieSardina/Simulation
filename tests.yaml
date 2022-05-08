@@ -4,7 +4,8 @@ numTrials: 10
 numNodes: 100
 numFaultyNodes: 49
 crashProbability: 0.01
-randomSeed: 2439714322249655263 # from generated random int 
+randomSeed: 1045992154518545368 # from generated random int 
+strategy: 1
 
 
 
