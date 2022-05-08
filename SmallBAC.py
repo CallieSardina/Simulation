@@ -7,7 +7,7 @@ import queue
 import random
 import yaml
 
-with open("./Simulation/tests.yaml", 'r') as file:
+with open("./tests.yaml", 'r') as file:
     settings = yaml.full_load(file)
 
     numTrials = settings['numTrials']
@@ -61,15 +61,6 @@ with open("./Simulation/tests.yaml", 'r') as file:
     def broadcast1_byzantine(node, n):
         # Byzantine stradegy 1
         message = Message.Message(node.i, random.random(), node.p)
-        for offset in range(n):
-            index = (node.i * n) + offset
-            channel[index].put(message)
-
-    # broadcasts message from node i to all nodes j, with state equal to -2
-    # when this is received, it signifies that this node is subject to byzantine behavior (strategy 2) 
-    def broadcast2_byzantine(node, n):
-        # for use in Byzantine stradegy 2
-        message = Message.Message(node.i, -2, node.p)
         for offset in range(n):
             index = (node.i * n) + offset
             channel[index].put(message)
@@ -143,33 +134,29 @@ with open("./Simulation/tests.yaml", 'r') as file:
     # part of byzantine stretegy 2
     def simulation_byzantine2(nodes, crashedNodes, dropProbability, round, rounds, p_end, n, f):
         for node in nodes:
-            if node not in crashedNodes:
-                broadcast(node, n)
-            else:
-                broadcast2_byzantine(node, n)
+            broadcast(node, n)
         for node in nodes:
-            if node not in crashedNodes:
-                messages = []
-                for q in range(node.i, (n - 1) * n + node.i + 1, n):
-                    message = channel[q].get()
-                    if(message.v == -2):
-                        if(node.p > message.p):
-                            message.v = 1
-                        if(node.p < message.p):
-                            message.v = 0
-                    if(not(drop(dropProbability))):
-                        if(message.p == -1):
-                            break
-                        messages.append(message)
-                out = smallBAC(node, messages, n, f, p_end)
-                if(out == 1):
-                    if(rounds[node.i] == -1):
-                        rounds[node.i] = round
+            messages = []
+            for q in range(node.i, (n - 1) * n + node.i + 1, n):
+                message = channel[q].get()
+                if(message.i == node.i and nodes[node.i] in crashedNodes):
+                    if(node.v > message.v):
+                        message.v = 1
+                    if(node.v < message.v):
+                        message.v = 0
+                if(not(drop(dropProbability))):
+                    if(message.p == -1):
+                        break
+                    messages.append(message)
+            out = smallBAC(node, messages, n, f, p_end)
+            if(out == 1):
+                if(rounds[node.i] == -1):
+                    rounds[node.i] = round
 
     # simulation structure
     def simulation(n, dropProbability, f, strategy):
         setChannel()
-        
+
         # initialize simulation settings
         complete = False
         round = 1
@@ -227,7 +214,7 @@ with open("./Simulation/tests.yaml", 'r') as file:
             
     # run simulation -- for quick testing
     # any outputs equal to -1 represent crashed nodes  
-    #utputs = simulation(100, 0.6, 10, 2)
+    #outputs = simulation(100, 0.6, 10, 2)
     #for i in range(len(outputs)):
     #    print("Node ", i, "made it to p_end at round: ", outputs[i])
 
