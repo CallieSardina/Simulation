@@ -19,10 +19,13 @@ with open("./Simulation/tests.yaml", 'r') as file:
 
     random.seed(randomSeed)
 
+    channel = [] 
+
     # "network channel"
-    channel = []
-    for i in range(numNodes * numNodes):
-        channel.append(queue.Queue(0))
+    def setChannel():
+        channel.clear()
+        for i in range(numNodes * numNodes):
+            channel.append(queue.Queue(0))
 
     # returns True if message should be dropped
     def drop(dropProbability):
@@ -145,6 +148,7 @@ with open("./Simulation/tests.yaml", 'r') as file:
 
     # simulation structure
     def simulation(n, dropProbability, f, strategy):
+        setChannel()
 
         # initialize simulation settings
         complete = False
@@ -209,15 +213,11 @@ with open("./Simulation/tests.yaml", 'r') as file:
                 crashedCount +=1
         print("NODES CRASHED: ", crashedCount)
 
-    # run simulation 
+    # FOR TESTING PURPOSES -- run simulation 
     # any outputs equal to -1 represent crashed nodes  
-    outputs = simulation(100, 0.1, 10, 2)
-    for i in range(len(outputs)):
-        print("Node ", i, "made it to p_end at round: ", outputs[i])
-    #getNumCrashes(outputs)
-    #final_round = max(outputs)
-    #print("FINAL ROUND: ", final_round)
-
+    #outputs = simulation(100, 0.4, 10, 1)
+    #for i in range(len(outputs)):
+    #    print("Node ", i, "made it to p_end at round: ", outputs[i])
 
     # constructs box plot, given number of trials and results, for task1
     def makeBoxplot_algAC(resultsDict):
@@ -230,12 +230,13 @@ with open("./Simulation/tests.yaml", 'r') as file:
         ax.set_xticklabels(resultsDict.keys())
         ax.set_xlabel("Message Loss Rate")
         ax.set_ylabel("Number of Rounds")
-        plt.savefig('algAC-test.pdf', bbox_inches='tight',pad_inches = 0)
+        filename = "algBAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".pdf"
+        plt.savefig(filename, bbox_inches='tight',pad_inches = 0)
         plt.show()
 
     # runs simulation and creates boxplot
     # runs each loss rate (10%, 20%, 30%, 40%, 50%, 60%) 10 times, outputing result data to task1.txt
-    def run_task_algAC():
+    def run_task_algBAC():
         resultsDict = {}
         final_round10 = []
         final_round20 = []
@@ -269,13 +270,14 @@ with open("./Simulation/tests.yaml", 'r') as file:
         resultsDict.update({0.5 : final_round50})
         resultsDict.update({0.6 : final_round60})
 
-        file = open("algACSimulation_test.txt", "w")
+        filename = "AlgBAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".txt"
+        file = open(filename, "w")
         file.write(str(resultsDict))
         file.close()
 
         makeBoxplot_algAC(resultsDict)
 
-    #run_task_algAC()
+    run_task_algBAC()
 
 
 

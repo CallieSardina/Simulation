@@ -246,13 +246,13 @@ with open("./Simulation/tests.yaml", 'r') as file:
         ax.set_xticklabels(resultsDict.keys())
         ax.set_xlabel("Message Loss Rate")
         ax.set_ylabel("Number of Rounds")
-        filename = "smallBAC-test" + numNodes + "-" + numFaultyNodes + "-" + crashProbability + ".pdf"
+        filename = "smallBAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".pdf"
         plt.savefig(filename, bbox_inches='tight',pad_inches = 0)
         plt.show()
 
     # runs simulation and creates boxplot
     # runs each loss rate (10%, 20%, 30%, 40%, 50%, 60%) 10 times, outputing result data to task1.txt
-    def run_task_smallAC():
+    def run_task_smallBAC():
         resultsDict = {}
         final_round10 = []
         final_round20 = []
@@ -286,11 +286,11 @@ with open("./Simulation/tests.yaml", 'r') as file:
         resultsDict.update({0.5 : final_round50})
         resultsDict.update({0.6 : final_round60})
 
-        filename = "smallBAC-test" + numNodes + "-" + numFaultyNodes + "-" + crashProbability + ".txt"
+        filename = "smallBAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".txt"
         file = open(filename, "w")
         file.write(str(resultsDict))
         file.close()
 
         makeBoxplot_smallAC(resultsDict)
 
-    #run_task_smallAC()
+    #run_task_smallBAC()

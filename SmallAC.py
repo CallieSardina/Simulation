@@ -177,19 +177,11 @@ with open("./Simulation/tests.yaml", 'r') as file:
                             eAgree = True
         return eAgree
             
-    # run simulation 
+    # FOR TESTING -- run simulation 
     # any outputs equal to -1 represent crashed nodes  
-    #final_round = []
-    #for i in range(10):
     #outputs = simulation(10, 0.6, 2)
-    #final_round.append(max(outputs))
-    #print("FINAL ROUND: ", final_round[i])
-    #crashedCount = 0
     #for i in range(len(outputs)):
-    #    if(outputs[i] == -1):
-    #        crashedCount +=1
     #    print("Node ", i, "made it to p_end at round: ", outputs[i])
-    #print("NODES CRASHED: ", crashedCount)
 
     def getNumCrashes(outputs):
         crashedCount = 0
@@ -209,7 +201,8 @@ with open("./Simulation/tests.yaml", 'r') as file:
         ax.set_xticklabels(resultsDict.keys())
         ax.set_xlabel("Message Loss Rate")
         ax.set_ylabel("Number of Rounds")
-        plt.savefig('smallAC-test.pdf',bbox_inches='tight',pad_inches = 0)
+        filename = "smallAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".pdf"
+        plt.savefig(filename,bbox_inches='tight',pad_inches = 0)
         plt.show()
 
     # runs simulation and creates boxplot
@@ -248,7 +241,8 @@ with open("./Simulation/tests.yaml", 'r') as file:
         resultsDict.update({0.5 : final_round50})
         resultsDict.update({0.6 : final_round60})
 
-        file = open("smallACSimulation_test.txt", "w")
+        filename = "smallAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".txt"
+        file = open(filename, "w")
         file.write(str(resultsDict))
         file.close()
 

@@ -72,19 +72,14 @@ with open("./Simulation/tests.yaml", 'r') as file:
                         node.R[node.p].append(m)
                 else:
                     node.R[node.p].append(m)
-        print("node: ", node.i, "LEN R: ", len(node.R[node.p]))
-        #for m in node.R[node.p]:
-        #    print("node.R[node.p]: ", m.i, m.p)
         if(len(node.R[node.p]) >= n - f):
             states = []
             for state in node.R[node.p]:
                 states.append(state.v)
             node.p += 1
-            print("NODE ", node.i, "UPDATED PHASE TO: ", node.p)
             node.v = 0.5 * (max(states) + min(states))
         if(node.p == p_end):
             return 1
-        #return -1
         
 
     # simulation structure
@@ -103,12 +98,10 @@ with open("./Simulation/tests.yaml", 'r') as file:
         # decide which nodes will crash and in what/ some round
         # f nodes will crash, as specified by function call
         nodesToCrash = random.sample(nodes, f)
-        #crashProbability  = 0.01
         crashedNodes = []
 
         # loop to send/ receive messages from every node 
         while(not(complete)):
-        #for i in range(5):
             print("")
             # broadcast <i, v_i, p_i> to all
             for node in nodesToCrash:
@@ -120,18 +113,11 @@ with open("./Simulation/tests.yaml", 'r') as file:
                 if(node not in crashedNodes):
                     if(node.p == 0):
                         messageSet.append(Message.Message(node.i, node.v, node.p))
-                        #for m in messageSet:
-                        #    print("NODE ", node.i, "SEDNING MESSAGE ", m.p)
                         broadcast(messageSet)
                     else:
                         for i in range(0, node.p + 1):
                             messageSet.append(Message.Message(node.i, node.v, i))
-                        #for m in messageSet:
-                        #    print("NODE ", node.i, "SEDNING MESSAGE ", m.p)
                         broadcast(messageSet)
-                #else:
-                #    messageSet.append(Message.Message(node.i, 0, -1))
-                #    broadcast(messageSet)
 
             # M <-- messages received in round r
             messages = [None for i in range(queue.qsize())]
@@ -140,10 +126,7 @@ with open("./Simulation/tests.yaml", 'r') as file:
             M = [[] for i in range(n)]
             for node in nodes:
                 if(node not in crashedNodes):
-                    M[node.i] = receive(node, messages, dropProbability)
-                #print("RECEIVEING AT  NODE: ", node.i)
-                #for m in M[node.i]:
-                #    print("M[i]: ", m.i, m.p)                
+                    M[node.i] = receive(node, messages, dropProbability)               
 
             # logic for running Algorithm AC
             for node in nodes:
@@ -161,7 +144,6 @@ with open("./Simulation/tests.yaml", 'r') as file:
                     complete = True
             if(complete):
                 if(checkEAgreement(nodes, crashedNodes, epsilon)):
-                    #print("Epsilon-agreement is satisfied.")
                     return rounds
             else:
                 round += 1      
@@ -189,15 +171,11 @@ with open("./Simulation/tests.yaml", 'r') as file:
                 crashedCount +=1
         print("NODES CRASHED: ", crashedCount)
 
-    # run simulation 
+    # FOR TESTING PURPOSES -- un simulation 
     # any outputs equal to -1 represent crashed nodes  
-    outputs = simulation(100, 0.6, 49)
-    for i in range(len(outputs)):
-        print("Node ", i, "made it to p_end at round: ", outputs[i])
-    #getNumCrashes(outputs)
-    #final_round = max(outputs)
-    #print("FINAL ROUND: ", final_round)
-
+    #outputs = simulation(100, 0.6, 49)
+    #for i in range(len(outputs)):
+    #    print("Node ", i, "made it to p_end at round: ", outputs[i])
 
     # constructs box plot, given number of trials and results, for task1
     def makeBoxplot_algAC(resultsDict):
@@ -210,7 +188,8 @@ with open("./Simulation/tests.yaml", 'r') as file:
         ax.set_xticklabels(resultsDict.keys())
         ax.set_xlabel("Message Loss Rate")
         ax.set_ylabel("Number of Rounds")
-        plt.savefig('algAC-test.pdf', bbox_inches='tight',pad_inches = 0)
+        filename = "AlgAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".pdf"
+        plt.savefig(filename, bbox_inches='tight',pad_inches = 0)
         plt.show()
 
     # runs simulation and creates boxplot
@@ -249,7 +228,8 @@ with open("./Simulation/tests.yaml", 'r') as file:
         resultsDict.update({0.5 : final_round50})
         resultsDict.update({0.6 : final_round60})
 
-        file = open("algACSimulation_test.txt", "w")
+        filename = "AlgAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".txt"
+        file = open(filename, "w")
         file.write(str(resultsDict))
         file.close()
 
