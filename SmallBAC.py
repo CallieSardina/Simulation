@@ -246,7 +246,7 @@ with open("./Simulation/tests.yaml", 'r') as file:
         ax.set_xticklabels(resultsDict.keys())
         ax.set_xlabel("Message Loss Rate")
         ax.set_ylabel("Number of Rounds")
-        filename = "smallBAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".pdf"
+        filename = "smallBAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + "-" + str(strategy) + ".pdf"
         plt.savefig(filename, bbox_inches='tight',pad_inches = 0)
         plt.show()
 
@@ -286,7 +286,7 @@ with open("./Simulation/tests.yaml", 'r') as file:
         resultsDict.update({0.5 : final_round50})
         resultsDict.update({0.6 : final_round60})
 
-        filename = "smallBAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".txt"
+        filename = "smallBAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + "-" + str(strategy) + ".txt"
         file = open(filename, "w")
         file.write(str(resultsDict))
         file.close()
