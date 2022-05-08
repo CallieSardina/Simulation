@@ -19,10 +19,13 @@ with open("./Simulation/tests.yaml", 'r') as file:
 
     random.seed(randomSeed)
 
+    channel = [] 
+
     # "network channel"
-    channel = []
-    for i in range(numNodes * numNodes):
-        channel.append(queue.Queue(0))
+    def setChannel():
+        channel.clear()
+        for i in range(numNodes * numNodes):
+            channel.append(queue.Queue(0))
 
     # returns True if message should be dropped
     def drop(dropProbability):
@@ -165,7 +168,8 @@ with open("./Simulation/tests.yaml", 'r') as file:
 
     # simulation structure
     def simulation(n, dropProbability, f, strategy):
-
+        setChannel()
+        
         # initialize simulation settings
         complete = False
         round = 1
@@ -201,8 +205,8 @@ with open("./Simulation/tests.yaml", 'r') as file:
                     complete = True
             if(complete):
                 if(checkEAgreement(nodes, crashedNodes, epsilon)):
-                    #print("Epsilon-agreement is satisfied.")
-                    return rounds
+                    print("Epsilon-agreement is satisfied.")
+                return rounds
             else:
                 round += 1      
 
@@ -223,9 +227,9 @@ with open("./Simulation/tests.yaml", 'r') as file:
             
     # run simulation -- for quick testing
     # any outputs equal to -1 represent crashed nodes  
-    outputs = simulation(100, 0.6, 10, 2)
-    for i in range(len(outputs)):
-        print("Node ", i, "made it to p_end at round: ", outputs[i])
+    #utputs = simulation(100, 0.6, 10, 2)
+    #for i in range(len(outputs)):
+    #    print("Node ", i, "made it to p_end at round: ", outputs[i])
 
     # returns the number of nodes crashed 
     def getNumCrashes(outputs):
@@ -293,4 +297,4 @@ with open("./Simulation/tests.yaml", 'r') as file:
 
         makeBoxplot_smallAC(resultsDict)
 
-    #run_task_smallBAC()
+    run_task_smallBAC()
