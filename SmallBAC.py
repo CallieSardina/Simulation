@@ -46,12 +46,15 @@ with open("./Simulation/tests.yaml", 'r') as file:
     def calcPEnd(e):
         return math.log(e, 0.5)
 
+    # broadcasts message from node i to all nodes j
+    # used in strategy 1 and strategy 2
     def broadcast(node, n):
         message = Message.Message(node.i, node.v, node.p)
         for offset in range(n):
             index = (node.i * n) + offset
             channel[index].put(message)
 
+    # broadcasts message from node i to all nodes j, with byzantine behavior according to strategy 1
     def broadcast1_byzantine(node, n):
         # Byzantine stradegy 1
         message = Message.Message(node.i, random.random(), node.p)
@@ -59,6 +62,8 @@ with open("./Simulation/tests.yaml", 'r') as file:
             index = (node.i * n) + offset
             channel[index].put(message)
 
+    # broadcasts message from node i to all nodes j, with state equal to -2
+    # when this is received, it signifies that this node is subject to byzantine behavior (strategy 2) 
     def broadcast2_byzantine(node, n):
         # for use in Byzantine stradegy 2
         message = Message.Message(node.i, -2, node.p)
@@ -108,6 +113,8 @@ with open("./Simulation/tests.yaml", 'r') as file:
         if(node.p == p_end):
             return 1
 
+    # receives messages at each node, and runs AlgBAC
+    # part of byzantine stretegy 1
     def simulation_byzantine1(nodes, crashedNodes, dropProbability, round, rounds, p_end, n, f):
         for node in nodes:
             if node not in crashedNodes:
@@ -128,6 +135,9 @@ with open("./Simulation/tests.yaml", 'r') as file:
                     if(rounds[node.i] == -1):
                         rounds[node.i] = round 
 
+    # receives messages at each node, and runs AlgBAC
+    # at each node, if it is 
+    # part of byzantine stretegy 2
     def simulation_byzantine2(nodes, crashedNodes, dropProbability, round, rounds, p_end, n, f):
         for node in nodes:
             if node not in crashedNodes:
@@ -178,7 +188,6 @@ with open("./Simulation/tests.yaml", 'r') as file:
                 if node not in crashedNodes and crash(crashProbability):
                     crashedNodes.append(node)
 
-            # logic for receiving messages
             if(strategy == 1):
                 simulation_byzantine1(nodes, crashedNodes, dropProbability, round, rounds, p_end, n, f)
             else:
@@ -285,4 +294,3 @@ with open("./Simulation/tests.yaml", 'r') as file:
         makeBoxplot_smallAC(resultsDict)
 
     #run_task_smallAC()
-
