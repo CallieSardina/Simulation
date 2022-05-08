@@ -7,7 +7,7 @@ import queue
 import random
 import yaml
 
-with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
+with open("./Simulation/tests.yaml", 'r') as file:
     settings = yaml.full_load(file)
 
     numTrials = settings['numTrials']
@@ -201,20 +201,21 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
     # constructs box plot, given number of trials and results, for task1
     def makeBoxplot_smallAC(resultsDict):
         fig = plt.figure()
+        plt.rcParams['figure.figsize'] = (3, 2)
         ax = fig.add_subplot(111)
         boxplotData = resultsDict.values()
         ax.boxplot(boxplotData)
+        ax.set_ylim(bottom = 0)
         ax.set_xticklabels(resultsDict.keys())
         ax.set_xlabel("Message Loss Rate")
-        ax.set_ylabel("final_round")
-        plt.savefig('smallAC-test4.pdf')
+        ax.set_ylabel("Number of Rounds")
+        plt.savefig('smallAC-test.pdf',bbox_inches='tight',pad_inches = 0)
         plt.show()
 
     # runs simulation and creates boxplot
     # runs each loss rate (10%, 20%, 30%, 40%, 50%, 60%) 10 times, outputing result data to task1.txt
     def run_task_smallAC():
         resultsDict = {}
-        final_round0 = []
         final_round10 = []
         final_round20 = []
         final_round30 = []
@@ -222,9 +223,6 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
         final_round50 = []
         final_round60 = []
         for i in range(numTrials):
-            sim0 = simulation(numNodes, 0, numFaultyNodes)
-            final_round0.append(max(sim0))
-            getNumCrashes(sim0)
             sim10 = simulation(numNodes, 0.1, numFaultyNodes)
             final_round10.append(max(sim10))
             getNumCrashes(sim10)
@@ -243,7 +241,6 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
             sim60 = simulation(numNodes, 0.6, numFaultyNodes)
             final_round60.append(max(sim60))
             getNumCrashes(sim60)
-        resultsDict.update({0 : final_round0})
         resultsDict.update({0.1 : final_round10})
         resultsDict.update({0.2 : final_round20})
         resultsDict.update({0.3 : final_round30})
@@ -251,7 +248,7 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
         resultsDict.update({0.5 : final_round50})
         resultsDict.update({0.6 : final_round60})
 
-        file = open("smallACSimulation_test4.txt", "w")
+        file = open("smallACSimulation_test.txt", "w")
         file.write(str(resultsDict))
         file.close()
 

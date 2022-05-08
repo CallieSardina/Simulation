@@ -7,7 +7,7 @@ import queue
 import random
 import yaml
 
-with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
+with open("./Simulation/tests.yaml", 'r') as file:
     settings = yaml.full_load(file)
 
     numTrials = settings['numTrials']

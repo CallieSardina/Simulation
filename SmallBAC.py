@@ -7,7 +7,7 @@ import queue
 import random
 import yaml
 
-with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
+with open("./Simulation/tests.yaml", 'r') as file:
     settings = yaml.full_load(file)
 
     numTrials = settings['numTrials']
@@ -15,11 +15,14 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
     numFaultyNodes = settings['numFaultyNodes']
     crashProbability = settings['crashProbability']
     randomSeed = settings['randomSeed']
+    strategy = settings['strategy']
 
     random.seed(randomSeed)
 
     # "network channel"
-    queue = queue.Queue(0)
+    channel = []
+    for i in range(numNodes * numNodes):
+        channel.append(queue.Queue(0))
 
     # returns True if message should be dropped
     def drop(dropProbability):
@@ -43,18 +46,25 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
     def calcPEnd(e):
         return math.log(e, 0.5)
 
-    # broadcast message from node (adding it to queue)
-    def broadcast(message):
-        queue.put(message)
+    def broadcast(node, n):
+        message = Message.Message(node.i, node.v, node.p)
+        for offset in range(n):
+            index = (node.i * n) + offset
+            channel[index].put(message)
 
-    # for every message in the queue, node i will receive the message, 
-    # or drop it according to the specified probability
-    def receive(node, messages, dropProbability, n):
-        received = []
-        for message in messages:
-            if(not(drop(dropProbability))):
-                received.append(message)
-        return received
+    def broadcast1_byzantine(node, n):
+        # Byzantine stradegy 1
+        message = Message.Message(node.i, random.random(), node.p)
+        for offset in range(n):
+            index = (node.i * n) + offset
+            channel[index].put(message)
+
+    def broadcast2_byzantine(node, n):
+        # for use in Byzantine stradegy 2
+        message = Message.Message(node.i, -2, node.p)
+        for offset in range(n):
+            index = (node.i * n) + offset
+            channel[index].put(message)
 
     # reset metod for SmallBAC
     def reset(node, n):
@@ -81,10 +91,8 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
                 index = node.R_low.index(minVal)
                 node.R_high[index] = v_j
 
-
     # Algorithm SamllBAC 
     def smallBAC(node, M, n, f, p_end):
-        #print("RUNNING SMALL_BAC ON NODE ", node.i)
         for m_j in M:
             if(m_j.p >= node.p and node.R[m_j.i] == 0):
                 node.R[m_j.i] = 1
@@ -99,10 +107,54 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
                 reset(node, n)
         if(node.p == p_end):
             return 1
-        #return -1
+
+    def simulation_byzantine1(nodes, crashedNodes, dropProbability, round, rounds, p_end, n, f):
+        for node in nodes:
+            if node not in crashedNodes:
+                broadcast(node, n)
+            else:
+                broadcast1_byzantine(node, n)
+        for node in nodes:
+            if(node not in crashedNodes):
+                messages = []
+                for q in range(node.i, (n - 1) * n + node.i + 1, n):
+                    message = channel[q].get()
+                    if(not(drop(dropProbability))):
+                        if(message.p == -1):
+                            break
+                        messages.append(message)
+                out = smallBAC(node, messages, n, f, p_end)
+                if(out == 1):
+                    if(rounds[node.i] == -1):
+                        rounds[node.i] = round 
+
+    def simulation_byzantine2(nodes, crashedNodes, dropProbability, round, rounds, p_end, n, f):
+        for node in nodes:
+            if node not in crashedNodes:
+                broadcast(node, n)
+            else:
+                broadcast2_byzantine(node, n)
+        for node in nodes:
+            if node not in crashedNodes:
+                messages = []
+                for q in range(node.i, (n - 1) * n + node.i + 1, n):
+                    message = channel[q].get()
+                    if(message.v == -2):
+                        if(node.p > message.p):
+                            message.v = 1
+                        if(node.p < message.p):
+                            message.v = 0
+                    if(not(drop(dropProbability))):
+                        if(message.p == -1):
+                            break
+                        messages.append(message)
+                out = smallBAC(node, messages, n, f, p_end)
+                if(out == 1):
+                    if(rounds[node.i] == -1):
+                        rounds[node.i] = round
 
     # simulation structure
-    def simulation(n, dropProbability, f):
+    def simulation(n, dropProbability, f, strategy):
 
         # initialize simulation settings
         complete = False
@@ -117,45 +169,20 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
         # decide which nodes will crash and in what/ some round
         # f nodes will crash, as specified by function call
         nodesToCrash = random.sample(nodes, f)
-        #crashProbability  = 0.1
         crashedNodes = []
 
         # loop to send/ receive messages from every node 
         while(not(complete)):
-        #for i in range(5):
             # broadcast <i, v_i, p_i> to all
             for node in nodesToCrash:
                 if node not in crashedNodes and crash(crashProbability):
                     crashedNodes.append(node)
 
-            for i in range(n):
-                if(nodes[i] not in crashedNodes):
-                    message = Message.Message(nodes[i].i, nodes[i].v, nodes[i].p)
-                    #print("NODE: ", nodes[i].i, "SENDING MESSAGE: ", message.i, message.p)
-                    broadcast(message)
-                else:
-                    message = Message.Message(nodes[i].i, 0, -1)
-                    broadcast(message)
-
-            # M <-- messages received in round r
-            messages = [None for i in range(n)]
-            for i in range(n):
-                messages[i] = queue.get()
-            M = [[] for i in range(n)]
-            for i in range(n):
-                if(nodes[i] not in crashedNodes):
-                    M[i] = receive(nodes[i], messages, dropProbability, n)
-                #for m in M[nodes[i].i]:
-                #    print("NODE ", nodes[i].i, "RECEIVED MESSAGE ", m.i, m.p)
-
-            # logic for running SmallAC
-            for i in range(n):
-                if(nodes[i] not in crashedNodes):
-                    out = smallBAC(nodes[i], M[i], n, f, p_end)
-                    if(out == 1):
-                        if(rounds[i] == -1):
-                            #print("ROUND: ", round)
-                            rounds[i] = round 
+            # logic for receiving messages
+            if(strategy == 1):
+                simulation_byzantine1(nodes, crashedNodes, dropProbability, round, rounds, p_end, n, f)
+            else:
+                simulation_byzantine2(nodes, crashedNodes, dropProbability, round, rounds, p_end, n, f)
 
             for i in range(n):
                 if(rounds[i] == -1 and nodes[i] not in crashedNodes):
@@ -165,9 +192,7 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
                     complete = True
             if(complete):
                 if(checkEAgreement(nodes, crashedNodes, epsilon)):
-                    print("Epsilon-agreement is satisfied.")
-                    for node in nodes:
-                        print("NODE: ", node.i, "STATE: ", node.v)
+                    #print("Epsilon-agreement is satisfied.")
                     return rounds
             else:
                 round += 1      
@@ -189,9 +214,9 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
             
     # run simulation -- for quick testing
     # any outputs equal to -1 represent crashed nodes  
-    #outputs = simulation(100, 0.4, 10)
-    #for i in range(len(outputs)):
-    #    print("Node ", i, "made it to p_end at round: ", outputs[i])
+    outputs = simulation(100, 0.6, 10, 2)
+    for i in range(len(outputs)):
+        print("Node ", i, "made it to p_end at round: ", outputs[i])
 
     # returns the number of nodes crashed 
     def getNumCrashes(outputs):
@@ -212,7 +237,8 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
         ax.set_xticklabels(resultsDict.keys())
         ax.set_xlabel("Message Loss Rate")
         ax.set_ylabel("Number of Rounds")
-        plt.savefig('smallBAC-test.pdf', bbox_inches='tight',pad_inches = 0)
+        filename = "smallBAC-test" + numNodes + "-" + numFaultyNodes + "-" + crashProbability + ".pdf"
+        plt.savefig(filename, bbox_inches='tight',pad_inches = 0)
         plt.show()
 
     # runs simulation and creates boxplot
@@ -226,22 +252,22 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
         final_round50 = []
         final_round60 = []
         for i in range(numTrials):
-            sim10 = simulation(numNodes, 0.1, numFaultyNodes)
+            sim10 = simulation(numNodes, 0.1, numFaultyNodes, strategy)
             final_round10.append(max(sim10))
             getNumCrashes(sim10)
-            sim20 = simulation(numNodes, 0.2, numFaultyNodes)
+            sim20 = simulation(numNodes, 0.2, numFaultyNodes, strategy)
             final_round20.append(max(sim20))
             getNumCrashes(sim20)
-            sim30 = simulation(numNodes, 0.3, numFaultyNodes)
+            sim30 = simulation(numNodes, 0.3, numFaultyNodes, strategy)
             final_round30.append(max(sim30))
             getNumCrashes(sim30)
-            sim40 = simulation(numNodes, 0.4, numFaultyNodes)
+            sim40 = simulation(numNodes, 0.4, numFaultyNodes, strategy)
             final_round40.append(max(sim40))
             getNumCrashes(sim40)
-            sim50 = simulation(numNodes, 0.5, numFaultyNodes)
+            sim50 = simulation(numNodes, 0.5, numFaultyNodes, strategy)
             final_round50.append(max(sim50))
             getNumCrashes(sim50)
-            sim60 = simulation(numNodes, 0.6, numFaultyNodes)
+            sim60 = simulation(numNodes, 0.6, numFaultyNodes, strategy)
             final_round60.append(max(sim60))
             getNumCrashes(sim60)
         resultsDict.update({0.1 : final_round10})
@@ -251,11 +277,12 @@ with open("/Users/calliesardina/TestAC/Simulation/tests.yaml", 'r') as file:
         resultsDict.update({0.5 : final_round50})
         resultsDict.update({0.6 : final_round60})
 
-        file = open("smallBACSimulation_test.txt", "w")
+        filename = "smallBAC-test" + numNodes + "-" + numFaultyNodes + "-" + crashProbability + ".txt"
+        file = open(filename, "w")
         file.write(str(resultsDict))
         file.close()
 
         makeBoxplot_smallAC(resultsDict)
 
-    run_task_smallAC()
+    #run_task_smallAC()
 
