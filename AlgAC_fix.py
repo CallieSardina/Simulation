@@ -18,8 +18,13 @@ with open("./tests.yaml", 'r') as file:
 
     random.seed(randomSeed)
 
+    channel = [] 
+
     # "network channel"
-    queue = queue.Queue(0)
+    def setChannel():
+        channel.clear()
+        for i in range(numNodes * numNodes):
+            channel.append(queue.Queue(0))
 
     # returns True if message should be dropped
     def drop(dropProbability):
@@ -33,23 +38,6 @@ with open("./tests.yaml", 'r') as file:
     def calcPEnd(e):
         return math.log(e, 0.5)
 
-    # when x is in phase p, x will broadcast  its state from phase 0 to phase p 
-    # in every round of phase p 
-    def broadcast(messageSet):
-        queue.put(messageSet)
-
-    # for every message in the queue, node i will receive the message, 
-    # or drop it according to the specified probability
-    # the receiver node will only take what it needs, for the purpose of simulation
-    def receive(node, messages, dropProbability):
-        received = []
-        for messageSet in messages:
-            if(not(drop(dropProbability))):
-                for message in messageSet:
-                    if(node.p == message.p):
-                        received.append(message)
-        return received
-
     # creates nodes according to initialozations for Algorithm AC
     def initializeAC(n, p_end):
         nodes = []
@@ -57,6 +45,43 @@ with open("./tests.yaml", 'r') as file:
             x_i = random.random()
             nodes.append(NodeAC.NodeAC(i, x_i, 0, [[] for i in range(p_end + 1)]))
         return nodes
+
+        # initialized the matrix of individual communication link probabilities for in- and out-gtroups
+    def initialize2DArray(inGroup, outGroup, n):
+        matrix = [[] for i in range(n)]
+        for i in range(100):
+            for j in range(100):
+                if(i <= 33 and j <= 33):
+                    matrix[i].append(inGroup)
+                else:
+                    if(33 < i <= 66 and 33 < j <= 66):
+                        matrix[i].append(inGroup)
+                    else:
+                        if(66 < i <= 99 and 66 < j <= 99):
+                            matrix[i].append(inGroup)
+                        else:
+                            matrix[i].append(outGroup)
+        return matrix
+
+    # when x is in phase p, x will broadcast  its state from phase 0 to phase p 
+    # in every round of phase p 
+    # broadcast message from node (adding it to queue)
+    def broadcast(node, crashedNodes, probabilityMatrix, n):
+        messageSet = []
+        if(node not in crashedNodes):
+            if(node.p == 0):
+                messageSet.append(Message.Message(node.i, node.v, node.p))
+            else:
+                for i in range(0, node.p + 1):
+                    messageSet.append(Message.Message(node.i, node.v, i))
+            for offset in range(n):
+                index = (node.i * n) + offset
+                channel[index].put((messageSet, probabilityMatrix[node.i][offset]))
+        else:
+            messageSet = [Message.Message(node.i, node.v, -1)]
+            for offset in range(n):
+                index = (node.i * n) + offset
+                channel[index].put((messageSet, probabilityMatrix[node.i][offset]))
 
     # Algorithm AC
     def algAC(node, p_end, M, n, f):
@@ -81,16 +106,45 @@ with open("./tests.yaml", 'r') as file:
         if(node.p == p_end):
             return 1
         
+    def runVaryingProbabilities(nodes, crashedNodes, round, rounds, p_end, n, f):
+        for node in nodes: 
+            if(node not in crashedNodes):
+                messages = []
+                for q in range(node.i, (n - 1) * n + node.i + 1, n):
+                    messageTuple = channel[q].get()
+                    messageSet = messageTuple[0]
+                    if(not(drop(messageTuple[1]))):
+                        for message in messageSet:
+                            messages.append(message)
+                out = algAC(node, p_end, messages, n, f)
+                if(out == 1):
+                    if(rounds[node.i] == -1):
+                        rounds[node.i] = round
+
+    def runConstantProbabilities(dropProbability, nodes, crashedNodes, round, rounds, p_end, n, f):
+        for node in nodes: 
+            if(node not in crashedNodes):
+                messages = []
+                for q in range(node.i, (n - 1) * n + node.i + 1, n):
+                    messageSet = channel[q].get()[0]
+                    if(not(drop(dropProbability))):
+                        for message in messageSet:
+                            messages.append(message)
+                out = algAC(node, p_end, messages, n, f)
+                if(out == 1):
+                    if(rounds[node.i] == -1):
+                        rounds[node.i] = round
 
     # simulation structure
     def simulation(n, dropProbability, f):
-
+        setChannel()
         # initialize simulation settings
         complete = False
         round = 1
         epsilon = 0.001
         p_end = int(calcPEnd(epsilon)) + 1
         nodes = initializeAC(n, p_end)
+        probabilityMatrix = initialize2DArray(0.1, 0.5, n)
 
         # for output data - the rounds it took node i to reach p_end is stores in rounds[i]
         rounds = [-1 for i in range(n)]
@@ -102,39 +156,20 @@ with open("./tests.yaml", 'r') as file:
 
         # loop to send/ receive messages from every node 
         while(not(complete)):
-            print("")
+            setChannel()
             # broadcast <i, v_i, p_i> to all
             for node in nodesToCrash:
                 if node not in crashedNodes and crash(crashProbability):
                     crashedNodes.append(node)
 
             for node in nodes:
-                messageSet = []
-                if(node not in crashedNodes):
-                    if(node.p == 0):
-                        messageSet.append(Message.Message(node.i, node.v, node.p))
-                        broadcast(messageSet)
-                    else:
-                        for i in range(0, node.p + 1):
-                            messageSet.append(Message.Message(node.i, node.v, i))
-                        broadcast(messageSet)
-
+                broadcast(node, crashedNodes, probabilityMatrix, n)
+                
             # M <-- messages received in round r
-            messages = [None for i in range(queue.qsize())]
-            for i in range(queue.qsize()):
-                messages[i] = queue.get()
-            M = [[] for i in range(n)]
-            for node in nodes:
-                if(node not in crashedNodes):
-                    M[node.i] = receive(node, messages, dropProbability)               
-
-            # logic for running Algorithm AC
-            for node in nodes:
-                if(node not in crashedNodes and rounds[node.i] == -1):
-                    out = algAC(node, p_end, M[node.i], n, f)
-                    if(out == 1):
-                        if(rounds[node.i] == -1):
-                            rounds[node.i] = round
+            if(dropProbability == -1):
+                runVaryingProbabilities(nodes, crashedNodes, round, rounds, p_end, n, f)
+            else:
+                runConstantProbabilities(dropProbability, nodes, crashedNodes, round, rounds, p_end, n, f) 
 
             for i in range(n):
                 if(rounds[i] == -1 and not(nodes[i] in nodesToCrash)):
@@ -173,7 +208,7 @@ with open("./tests.yaml", 'r') as file:
 
     # FOR TESTING PURPOSES -- un simulation 
     # any outputs equal to -1 represent crashed nodes  
-    #outputs = simulation(100, 0.6, 49)
+    #outputs = simulation(100, -1, 10)
     #for i in range(len(outputs)):
     #    print("Node ", i, "made it to p_end at round: ", outputs[i])
 
@@ -202,6 +237,7 @@ with open("./tests.yaml", 'r') as file:
         final_round40 = []
         final_round50 = []
         final_round60 = []
+        final_round_1050 = []
         for i in range(numTrials):
             sim10 = simulation(numNodes, 0.1, numFaultyNodes)
             final_round10.append(max(sim10))
@@ -221,12 +257,16 @@ with open("./tests.yaml", 'r') as file:
             sim60 = simulation(numNodes, 0.6, numFaultyNodes)
             final_round60.append(max(sim60))
             getNumCrashes(sim60)
+            sim1050 = simulation(numNodes, -1, numFaultyNodes)
+            final_round_1050.append(max(sim1050))
+            getNumCrashes(sim60)
         resultsDict.update({0.1 : final_round10})
         resultsDict.update({0.2 : final_round20})
         resultsDict.update({0.3 : final_round30})
         resultsDict.update({0.4 : final_round40})
         resultsDict.update({0.5 : final_round50})
         resultsDict.update({0.6 : final_round60})
+        resultsDict.update({"0.1, 0.5" : final_round_1050})
 
         filename = "AlgAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".txt"
         file = open(filename, "w")
@@ -235,7 +275,6 @@ with open("./tests.yaml", 'r') as file:
 
         makeBoxplot_algAC(resultsDict)
 
-    #run_task_algAC()
-
+    run_task_algAC()
 
 
