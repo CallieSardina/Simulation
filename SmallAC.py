@@ -45,6 +45,7 @@ with open("./tests.yaml", 'r') as file:
             node.R[node.i] = 1
         return nodes
 
+    # initialized the matrix of individual communication link probabilities for in- and out-gtroups
     def initialize2DArray(inGroup, outGroup, n):
         matrix = [[] for i in range(n)]
         for i in range(100):
@@ -77,15 +78,6 @@ with open("./tests.yaml", 'r') as file:
             for offset in range(n):
                 index = (node.i * n) + offset
                 channel[index].put((message, probabilityMatrix[node.i][offset]))
-
-    # for every message in the queue, node i will receive the message, 
-    # or drop it according to the specified probability
-    def receive(messages):
-        received = []
-        for (message, j) in messages:
-            if(j == message.i):
-                received.append(message)
-        return received
 
     # reset metod for SmallAC
     def reset(node, n):
