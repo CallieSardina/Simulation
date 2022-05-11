@@ -170,6 +170,7 @@ with open("./tests.yaml", 'r') as file:
 
         # loop to send/ receive messages from every node 
         while(not(complete)):
+            setChannel()
             # broadcast <i, v_i, p_i> to all
             for node in nodesToCrash:
                 if(node not in crashedNodes and crash(crashProbability)):
