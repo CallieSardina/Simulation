@@ -1,4 +1,5 @@
 import math
+from re import S
 import matplotlib.pyplot as plt
 import Message
 import Node
@@ -18,46 +19,14 @@ with open("./tests.yaml", 'r') as file:
 
     random.seed(randomSeed)
 
+    channel = [] 
+
     # "network channel"
-    queue = queue.Queue(0)
+    def setChannel():
+        channel.clear()
+        for i in range(numNodes * numNodes):
+            channel.append(queue.Queue(0))
 
-    def initializeDropProb(num10, num20, num30, num40, num50, num60):
-        num10 = num10
-        num20 = num20
-        num30 = num30
-        num40 = num40
-        num50 = num50
-        num60 = num60
-
-        dropProbabilities = {}
-        count = 0
-        for i in range (num10):
-            dropProbabilities.update({i : 0.1})
-        count += num10
-        for i in range (count, count + num20):
-            dropProbabilities.update({i : 0.2})
-        count += num20
-        for i in range (count, count + num30):
-            dropProbabilities.update({i : 0.3})
-        count += num30
-        for i in range (count, count + num40):
-            dropProbabilities.update({i : 0.4})
-        count += num40
-        for i in range (count, count + num50):
-            dropProbabilities.update({i : 0.5})
-        count += num50
-        for i in range (count, count + num60):
-            dropProbabilities.update({i : 0.6})
-        return dropProbabilities
-
-    dropProbabilities0 = initializeDropProb(17, 17, 17, 17, 16, 16)
-    dropProbabilities1 = initializeDropProb(100, 0, 0, 0, 0, 0)
-    dropProbabilities2 = initializeDropProb(0, 100, 0, 0, 0, 0)
-    dropProbabilities3 = initializeDropProb(0, 0, 100, 0, 0, 0)
-    dropProbabilities4 = initializeDropProb(0, 0, 0, 100, 0, 0)
-    dropProbabilities5 = initializeDropProb(0, 0, 0, 0, 100, 0)
-    dropProbabilities6 = initializeDropProb(0, 0, 0, 0, 0, 100)
-    
     # returns True if message should be dropped
     def drop(dropProbability):
         return random.random() < dropProbability
@@ -81,16 +50,24 @@ with open("./tests.yaml", 'r') as file:
         return math.log(e, 0.5)
 
     # broadcast message from node (adding it to queue)
-    def broadcast(message):
-        queue.put(message)
+    def broadcast(node, crashedNodes, n):
+        if(node not in crashedNodes):
+            message = Message.Message(node.i, node.v, node.p)
+            for offset in range(n):
+                index = (node.i * n) + offset
+                channel[index].put(message)
+        else:
+            message = Message.Message(node.i, node.v, -1)
+            for offset in range(n):
+                index = (node.i * n) + offset
+                channel[index].put(message)
 
     # for every message in the queue, node i will receive the message, 
     # or drop it according to the specified probability
-    def receive(messages, dropProbabilities):
+    def receive(messages):
         received = []
-        for message in messages:
-            dropProbability = dropProbabilities.get(message.i)
-            if(not(drop(dropProbability))):
+        for (message, j) in messages:
+            if(j == message.i):
                 received.append(message)
         return received
 
@@ -135,8 +112,47 @@ with open("./tests.yaml", 'r') as file:
                     if(node.p == p_end):
                         return 1
 
+    def runVaryingProbabilities(nodes, crashedNodes, round, rounds, p_end, n, f):
+        for node in nodes:
+            if(node not in crashedNodes):
+                messages = []
+                for q in range(node.i, (n - 1) * n + node.i + 1, n):
+                    message = channel[q].get()
+                    if(message.i <= 33 and node.i <= 33):
+                        if(not(drop(0.1))):
+                            messages.append(message)
+                    else:
+                        if(33 < message.i <= 66 and 33 < node.i <= 66):
+                            if(not(drop(0.1))):
+                                messages.append(message)
+                        else:
+                            if(66 < message.i <= 99 and 66 < node.i <= 99):
+                                if(not(drop(0.1))):
+                                    messages.append(message)
+                            else:
+                                if(not(drop(0.5))):
+                                    messages.append(message)
+                    out = smallAC(node, messages, n, f, p_end)
+                    if(out == 1):
+                        if(rounds[node.i] == -1):
+                            rounds[node.i] = round
+
+    def runConstantProbabilities(dropProbability, nodes, crashedNodes, round, rounds, p_end, n, f):
+        for node in nodes: 
+            if(node not in crashedNodes):
+                messages = []
+                for q in range(node.i, (n - 1) * n + node.i + 1, n):
+                    message = channel[q].get()
+                    if(not(drop(dropProbability))):
+                        messages.append(message)
+                out = smallAC(node, messages, n, f, p_end)
+                if(out == 1):
+                    if(rounds[node.i] == -1):
+                        rounds[node.i] = round
+
     # simulation structure
-    def simulation(n, dropProbabilities, f):
+    def simulation(n, dropProbability, f):
+        setChannel()
 
         # initialize simulation settings
         complete = False
@@ -151,40 +167,23 @@ with open("./tests.yaml", 'r') as file:
         # decide which nodes will crash and in what/ some round
         # f nodes will crash, as specified by function call
         nodesToCrash = random.sample(nodes, f)
-        #crashProbability  = 0.1
         crashedNodes = []
+
 
         # loop to send/ receive messages from every node 
         while(not(complete)):
             # broadcast <i, v_i, p_i> to all
             for node in nodesToCrash:
-                if node not in crashedNodes and crash(crashProbability):
+                if(node not in crashedNodes and crash(crashProbability)):
                     crashedNodes.append(node)
 
-            for i in range(n):
-                if(nodes[i] not in crashedNodes):
-                    message = Message.Message(nodes[i].i, nodes[i].v, nodes[i].p)
-                    broadcast(message)
-                else:
-                    message = Message.Message(nodes[i].i, 0, -1)
-                    broadcast(message)
+            for node in nodes:
+                broadcast(node, crashedNodes, n)
 
-            # M <-- messages received in round r
-            messages = [None for i in range(n)]
-            for i in range(n):
-                messages[i] = queue.get()
-            M = [[] for i in range(n)]
-            for i in range(n):
-                if(nodes[i] not in crashedNodes):
-                    M[i] = receive(messages, dropProbabilities)
-
-            # logic for running SmallAC
-            for i in range(n):
-                if(nodes[i] not in crashedNodes):
-                    out = smallAC(nodes[i], M[i], n, f, p_end)
-                    if(out == 1):
-                        if(rounds[i] == -1):
-                            rounds[i] = round 
+            if(dropProbability == -1):
+                runVaryingProbabilities(nodes, crashedNodes, round, rounds, p_end, n, f)
+            else:
+                runConstantProbabilities(dropProbability, nodes, crashedNodes, round, rounds, p_end, n, f)     
 
             for i in range(n):
                 if(rounds[i] == -1 and nodes[i] not in crashedNodes):
@@ -213,12 +212,6 @@ with open("./tests.yaml", 'r') as file:
                         else:
                             eAgree = True
         return eAgree
-            
-    # FOR TESTING -- run simulation 
-    # any outputs equal to -1 represent crashed nodes  
-    #outputs = simulation(100, dropProbabilities, 49)
-    #for i in range(len(outputs)):
-    #    print("Node ", i, "made it to p_end at round: ", outputs[i])
 
     def getNumCrashes(outputs):
         crashedCount = 0
@@ -226,6 +219,13 @@ with open("./tests.yaml", 'r') as file:
             if(outputs[i] == -1):
                 crashedCount +=1
         print("NODES CRASHED: ", crashedCount)
+         
+    # FOR TESTING -- run simulation 
+    # any outputs equal to -1 represent crashed nodes  
+    #outputs = simulation(100, -1, 10)
+    #for i in range(len(outputs)):
+    #    print("Node ", i, "made it to p_end at round: ", outputs[i])
+    #getNumCrashes(outputs)
 
     # constructs box plot, given number of trials and results, for task1
     def makeBoxplot_smallAC(resultsDict):
@@ -252,36 +252,36 @@ with open("./tests.yaml", 'r') as file:
         final_round40 = []
         final_round50 = []
         final_round60 = []
-        final_round_varying = []
+        final_round_1050= []
         for i in range(numTrials):
-            sim10 = simulation(numNodes, dropProbabilities1, numFaultyNodes)
+            sim10 = simulation(numNodes, 0.1, numFaultyNodes)
             final_round10.append(max(sim10))
             getNumCrashes(sim10)
-            sim20 = simulation(numNodes, dropProbabilities2, numFaultyNodes)
+            sim20 = simulation(numNodes, 0.2, numFaultyNodes)
             final_round20.append(max(sim20))
             getNumCrashes(sim20)
-            sim30 = simulation(numNodes, dropProbabilities3, numFaultyNodes)
+            sim30 = simulation(numNodes, 0.3, numFaultyNodes)
             final_round30.append(max(sim30))
             getNumCrashes(sim30)
-            sim40 = simulation(numNodes, dropProbabilities4, numFaultyNodes)
+            sim40 = simulation(numNodes, 0.4, numFaultyNodes)
             final_round40.append(max(sim40))
             getNumCrashes(sim40)
-            sim50 = simulation(numNodes, dropProbabilities5, numFaultyNodes)
+            sim50 = simulation(numNodes, 0.5, numFaultyNodes)
             final_round50.append(max(sim50))
             getNumCrashes(sim50)
-            sim60 = simulation(numNodes, dropProbabilities6, numFaultyNodes)
+            sim60 = simulation(numNodes, 0.6, numFaultyNodes)
             final_round60.append(max(sim60))
             getNumCrashes(sim60)
-            simVarying = simulation(numNodes, dropProbabilities0, numFaultyNodes)
-            final_round_varying.append(max(simVarying))
-            getNumCrashes(simVarying)
+            sim1050 = simulation(numNodes, -1, numFaultyNodes)
+            final_round_1050.append(max(sim1050))
+            getNumCrashes(sim60)
         resultsDict.update({0.1 : final_round10})
         resultsDict.update({0.2 : final_round20})
         resultsDict.update({0.3 : final_round30})
         resultsDict.update({0.4 : final_round40})
         resultsDict.update({0.5 : final_round50})
         resultsDict.update({0.6 : final_round60})
-        resultsDict.update({"Varying" : final_round_varying})
+        resultsDict.update({"0.1, 0.5" : final_round_1050})
 
         filename = "smallAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".txt"
         file = open(filename, "w")
@@ -291,4 +291,3 @@ with open("./tests.yaml", 'r') as file:
         makeBoxplot_smallAC(resultsDict)
 
     run_task_smallAC()
-
