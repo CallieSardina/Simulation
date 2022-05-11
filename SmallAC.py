@@ -45,22 +45,38 @@ with open("./tests.yaml", 'r') as file:
             node.R[node.i] = 1
         return nodes
 
+    def initialize2DArray(inGroup, outGroup, n):
+        matrix = [[] for i in range(n)]
+        for i in range(100):
+            for j in range(100):
+                if(i <= 33 and j <= 33):
+                    matrix[i].append(inGroup)
+                else:
+                    if(33 < i <= 66 and 33 < j <= 66):
+                        matrix[i].append(inGroup)
+                    else:
+                        if(66 < i <= 99 and 66 < j <= 99):
+                            matrix[i].append(inGroup)
+                        else:
+                            matrix[i].append(outGroup)
+        return matrix
+
     # calculate p_end according to Equation 2
     def calcPEnd(e):
         return math.log(e, 0.5)
 
     # broadcast message from node (adding it to queue)
-    def broadcast(node, crashedNodes, n):
+    def broadcast(node, crashedNodes, probabilityMatrix, n):
         if(node not in crashedNodes):
             message = Message.Message(node.i, node.v, node.p)
             for offset in range(n):
                 index = (node.i * n) + offset
-                channel[index].put(message)
+                channel[index].put((message, probabilityMatrix[node.i][offset]))
         else:
             message = Message.Message(node.i, node.v, -1)
             for offset in range(n):
                 index = (node.i * n) + offset
-                channel[index].put(message)
+                channel[index].put((message, probabilityMatrix[node.i][offset]))
 
     # for every message in the queue, node i will receive the message, 
     # or drop it according to the specified probability
@@ -117,21 +133,10 @@ with open("./tests.yaml", 'r') as file:
             if(node not in crashedNodes):
                 messages = []
                 for q in range(node.i, (n - 1) * n + node.i + 1, n):
-                    message = channel[q].get()
-                    if(message.i <= 33 and node.i <= 33):
-                        if(not(drop(0.1))):
-                            messages.append(message)
-                    else:
-                        if(33 < message.i <= 66 and 33 < node.i <= 66):
-                            if(not(drop(0.1))):
-                                messages.append(message)
-                        else:
-                            if(66 < message.i <= 99 and 66 < node.i <= 99):
-                                if(not(drop(0.1))):
-                                    messages.append(message)
-                            else:
-                                if(not(drop(0.5))):
-                                    messages.append(message)
+                    messageTuple = channel[q].get()
+                    message = messageTuple[0]
+                    if(not(drop(messageTuple[1]))):
+                        messages.append(message)
                     out = smallAC(node, messages, n, f, p_end)
                     if(out == 1):
                         if(rounds[node.i] == -1):
@@ -142,7 +147,7 @@ with open("./tests.yaml", 'r') as file:
             if(node not in crashedNodes):
                 messages = []
                 for q in range(node.i, (n - 1) * n + node.i + 1, n):
-                    message = channel[q].get()
+                    message = channel[q].get()[0]
                     if(not(drop(dropProbability))):
                         messages.append(message)
                 out = smallAC(node, messages, n, f, p_end)
@@ -158,6 +163,7 @@ with open("./tests.yaml", 'r') as file:
         complete = False
         round = 1
         nodes = initializeSmallAC(n)
+        probabilityMatrix = initialize2DArray(0.1, 0.5, n)
         epsilon = 0.001
         p_end = int(calcPEnd(epsilon)) + 1
 
@@ -178,7 +184,7 @@ with open("./tests.yaml", 'r') as file:
                     crashedNodes.append(node)
 
             for node in nodes:
-                broadcast(node, crashedNodes, n)
+                broadcast(node, crashedNodes, probabilityMatrix, n)
 
             if(dropProbability == -1):
                 runVaryingProbabilities(nodes, crashedNodes, round, rounds, p_end, n, f)
