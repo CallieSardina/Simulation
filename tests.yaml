@@ -2,10 +2,12 @@
 
 numTrials: 10
 numNodes: 100
-numFaultyNodes: 49
-crashProbability: 0.01
-randomSeed: 1045992154518545368 # from generated random int 
-strategy: 1
+numFaultyNodes: 10
+crashProbability: 0.1
+randomSeed: 7098174109151443524 # from generated random int 
+strategy: 2
+inGroup: 0.1
+outGroup: 0.5
 
 
 
