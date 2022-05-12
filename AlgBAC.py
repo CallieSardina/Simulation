@@ -45,18 +45,29 @@ with open("./tests.yaml", 'r') as file:
     # broadcasts message from node i to all nodes j
     # used in strategy 1 and strategy 2
     def broadcast(node, probabilityMatrix, n):
-        message = Message.Message(node.i, node.v, node.p)
+        messageSet = []
+        if(node.p == 0):
+            messageSet.append(Message.Message(node.i, node.v, node.p))
+        else:
+            for i in range(0, node.p + 1):
+                messageSet.append(Message.Message(node.i, node.v, i))
         for offset in range(n):
             index = (node.i * n) + offset
-            channel[index].put((message, probabilityMatrix[node.i][offset]))
+            channel[index].put((messageSet, probabilityMatrix[node.i][offset]))
 
     # broadcasts message from node i to all nodes j, with byzantine behavior according to strategy 1
     def broadcast1_byzantine(node, probabilityMatrix, n):
-        # Byzantine stradegy 1
-        message = Message.Message(node.i, random.random(), node.p)
+        messageSet = []
+        if(node.p == 0):
+            messageSet.append(Message.Message(node.i, random.random(), node.p))
+        else:
+            v = random.random()
+            for i in range(0, node.p + 1):
+                messageSet.append(Message.Message(node.i, v, i))
         for offset in range(n):
             index = (node.i * n) + offset
-            channel[index].put((message, probabilityMatrix[node.i][offset]))
+            channel[index].put((messageSet, probabilityMatrix[node.i][offset]))
+
 
     # creates nodes according to initialozations for Algorithm BAC
     def initializeBAC(n, p_end):
@@ -65,6 +76,7 @@ with open("./tests.yaml", 'r') as file:
             x_i = random.random()
             nodes.append(NodeAC.NodeAC(i, x_i, 0, [[] for i in range(p_end + 1)]))
         return nodes
+
 
     # Algorithm BAC
     def algBAC(node, p_end, M, n, f):
@@ -81,7 +93,7 @@ with open("./tests.yaml", 'r') as file:
                     node.R[node.p].append(m)
         if(len(node.R[node.p]) >= n - f):
             states = []
-            for state in node.R[node.p ]:
+            for state in node.R[node.p]:
                 states.append(state.v)
             node.p += 1
             ascending = sorted(states)
@@ -89,7 +101,7 @@ with open("./tests.yaml", 'r') as file:
             node.v = 0.5 * (ascending[f + 1] + descending[f + 1])
         if(node.p == p_end):
             return 1
-        
+
     # receives messages at each node, and runs AlgBAC
     # part of byzantine stretegy 1
     def simulation_byzantine1(nodes, crashedNodes, dropProbability, probabilityMatrix, round, rounds, p_end, n, f):
@@ -104,17 +116,19 @@ with open("./tests.yaml", 'r') as file:
                 #messages = []
             for q in range(node.i, (n - 1) * n + node.i + 1, n):
                 messageTuple = channel[q].get()
-                message = messageTuple[0]
+                messageSet = messageTuple[0]
                 if(not(dropProbability == -1)):
                     if(not(drop(dropProbability))):
-                        if(message.p == -1):
-                            break
-                        messages[node.i].append(message)
+                        for message in messageSet:
+                            if(message.p == -1):
+                                break
+                            messages[node.i].append(message)
                 else:
                     if(not(drop(messageTuple[1]))):
-                        if(message.p == -1):
-                            break
-                        messages[node.i].append(message)
+                        for message in messageSet:
+                            if(message.p == -1):
+                                break
+                            messages[node.i].append(message)
         for node in nodes: 
             if(node not in crashedNodes):
                 out = algBAC(node, p_end, messages[node.i], n, f)
@@ -133,22 +147,25 @@ with open("./tests.yaml", 'r') as file:
             #messages = []
             for q in range(node.i, (n - 1) * n + node.i + 1, n):
                 messageTuple = channel[q].get()
-                message = messageTuple[0]
-                if(message.i == node.i and nodes[node.i] in crashedNodes):
-                    if(node.v > message.v):
-                        message.v = 1
-                    if(node.v < message.v):
-                        message.v = 0
+                messageSet = messageTuple[0]
+                for message in messageSet:
+                    if(message.i == node.i and nodes[node.i] in crashedNodes):
+                        if(node.v > message.v):
+                            message.v = 1
+                        if(node.v < message.v):
+                            message.v = 0
                 if(not(dropProbability == -1)):
                     if(not(drop(dropProbability))):
-                        if(message.p == -1):
-                            break
-                        messages[node.i].append(message)
+                        for message in messageSet:
+                            if(message.p == -1):
+                                break
+                            messages[node.i].append(message)
                 else:
                     if(not(drop(messageTuple[1]))):
-                        if(message.p == -1):
-                            break
-                        messages[node.i].append(message)
+                        for message in messageSet:
+                            if(message.p == -1):
+                                break
+                            messages[node.i].append(message)
         for node in nodes:
             if(node not in crashedNodes):
                 out = algBAC(node, p_end, messages[node.i], n, f)
@@ -220,18 +237,18 @@ with open("./tests.yaml", 'r') as file:
         return eAgree
 
 
-    #def getNumCrashes(outputs):
-    #    crashedCount = 0
-    #    for i in range(len(outputs)):
-    #        if(outputs[i] == -1):
-    #            crashedCount +=1
-    #    print("NODES CRASHED: ", crashedCount)
+    def getNumCrashes(outputs):
+        crashedCount = 0
+        for i in range(len(outputs)):
+            if(outputs[i] == -1):
+                crashedCount +=1
+        print("NODES CRASHED: ", crashedCount)
 
     # FOR TESTING PURPOSES -- run simulation 
     # any outputs equal to -1 represent crashed nodes  
-    #outputs = simulation(100, -1, 10, 1)
-    #for i in range(len(outputs)):
-    #    print("Node ", i, "made it to p_end at round: ", outputs[i])
+    outputs = simulation(60, 0.3, 11, 1)
+    for i in range(len(outputs)):
+        print("Node ", i, "made it to p_end at round: ", outputs[i])
 
     # constructs box plot, given number of trials and results, for task1
     def makeBoxplot_algAC(resultsDict):
@@ -262,25 +279,25 @@ with open("./tests.yaml", 'r') as file:
         for i in range(numTrials):
             sim10 = simulation(numNodes, 0.1, numFaultyNodes, strategy)
             final_round10.append(max(sim10))
-            #getNumCrashes(sim10)
+            getNumCrashes(sim10)
             sim20 = simulation(numNodes, 0.2, numFaultyNodes, strategy)
             final_round20.append(max(sim20))
-            #getNumCrashes(sim20)
+            getNumCrashes(sim20)
             sim30 = simulation(numNodes, 0.3, numFaultyNodes, strategy)
             final_round30.append(max(sim30))
-            #getNumCrashes(sim30)
+            getNumCrashes(sim30)
             sim40 = simulation(numNodes, 0.4, numFaultyNodes, strategy)
             final_round40.append(max(sim40))
-            #getNumCrashes(sim40)
+            getNumCrashes(sim40)
             sim50 = simulation(numNodes, 0.5, numFaultyNodes, strategy)
             final_round50.append(max(sim50))
-            #getNumCrashes(sim50)
+            getNumCrashes(sim50)
             sim60 = simulation(numNodes, 0.6, numFaultyNodes, strategy)
             final_round60.append(max(sim60))
-            #getNumCrashes(sim60)
+            getNumCrashes(sim60)
             sim1050 = simulation(numNodes, -1, numFaultyNodes, strategy)
             final_round_1050.append(max(sim1050))
-            #getNumCrashes(sim1050)
+            getNumCrashes(sim1050)
         resultsDict.update({0.1 : final_round10})
         resultsDict.update({0.2 : final_round20})
         resultsDict.update({0.3 : final_round30})
@@ -296,7 +313,7 @@ with open("./tests.yaml", 'r') as file:
 
         makeBoxplot_algAC(resultsDict)
 
-    run_task_algBAC()
+    #run_task_algBAC()
 
 
 
