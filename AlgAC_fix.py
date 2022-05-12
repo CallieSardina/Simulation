@@ -73,7 +73,7 @@ with open("./tests.yaml", 'r') as file:
     def algAC(node, p_end, M, n, f):
         #print("RUNNING AC ON NODE: ", node.i)
         for m in M: 
-            if(m.p == node.p):
+            if(m.p >= node.p):
                 if(len(node.R[node.p]) > 0):
                     contains = False
                     for message in node.R[node.p]:
@@ -204,9 +204,9 @@ with open("./tests.yaml", 'r') as file:
 
     # FOR TESTING PURPOSES -- un simulation 
     # any outputs equal to -1 represent crashed nodes  
-    #outputs = simulation(100, -1, 10)
-    #for i in range(len(outputs)):
-    #    print("Node ", i, "made it to p_end at round: ", outputs[i])
+    outputs = simulation(60, 0.6, 11)
+    for i in range(len(outputs)):
+        print("Node ", i, "made it to p_end at round: ", outputs[i])
 
     # constructs box plot, given number of trials and results, for task1
     def makeBoxplot_algAC(resultsDict):
@@ -233,7 +233,7 @@ with open("./tests.yaml", 'r') as file:
         final_round40 = []
         final_round50 = []
         final_round60 = []
-        final_round_1050 = []
+        #final_round_1050 = []
         for i in range(numTrials):
             sim10 = simulation(numNodes, 0.1, numFaultyNodes)
             final_round10.append(max(sim10))
@@ -253,16 +253,16 @@ with open("./tests.yaml", 'r') as file:
             sim60 = simulation(numNodes, 0.6, numFaultyNodes)
             final_round60.append(max(sim60))
             getNumCrashes(sim60)
-            sim1050 = simulation(numNodes, -1, numFaultyNodes)
-            final_round_1050.append(max(sim1050))
-            getNumCrashes(sim1050)
+            #sim1050 = simulation(numNodes, -1, numFaultyNodes)
+            #final_round_1050.append(max(sim1050))
+            #getNumCrashes(sim1050)
         resultsDict.update({0.1 : final_round10})
         resultsDict.update({0.2 : final_round20})
         resultsDict.update({0.3 : final_round30})
         resultsDict.update({0.4 : final_round40})
         resultsDict.update({0.5 : final_round50})
         resultsDict.update({0.6 : final_round60})
-        resultsDict.update({"0.1, 0.5" : final_round_1050})
+        #resultsDict.update({"0.1, 0.5" : final_round_1050})
 
         filename = "AlgAC-test" + str(numNodes) + "-" + str(numFaultyNodes) + "-" + str(crashProbability) + ".txt"
         file = open(filename, "w")
@@ -271,6 +271,6 @@ with open("./tests.yaml", 'r') as file:
 
         makeBoxplot_algAC(resultsDict)
 
-    run_task_algAC()
+    #run_task_algAC()
 
 
