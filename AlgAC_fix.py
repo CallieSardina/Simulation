@@ -73,7 +73,7 @@ with open("./tests.yaml", 'r') as file:
     def algAC(node, p_end, M, n, f):
         #print("RUNNING AC ON NODE: ", node.i)
         for m in M: 
-            if(m.p >= node.p):
+            if(m.p == node.p):
                 if(len(node.R[node.p]) > 0):
                     contains = False
                     for message in node.R[node.p]:
@@ -204,9 +204,9 @@ with open("./tests.yaml", 'r') as file:
 
     # FOR TESTING PURPOSES -- un simulation 
     # any outputs equal to -1 represent crashed nodes  
-    #outputs = simulation(60, 0.5, 11)
-    #for i in range(len(outputs)):
-    #    print("Node ", i, "made it to p_end at round: ", outputs[i])
+    outputs = simulation(60, 0.2, 11)
+    for i in range(len(outputs)):
+        print("Node ", i, "made it to p_end at round: ", outputs[i])
 
     # constructs box plot, given number of trials and results, for task1
     def makeBoxplot_algAC(resultsDict):
@@ -271,6 +271,6 @@ with open("./tests.yaml", 'r') as file:
 
         makeBoxplot_algAC(resultsDict)
 
-    run_task_algAC()
+    #run_task_algAC()
 
 
