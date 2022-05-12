@@ -81,7 +81,7 @@ with open("./tests.yaml", 'r') as file:
     # Algorithm BAC
     def algBAC(node, p_end, M, n, f):
         for m in M: 
-            if(m.p >= node.p):
+            if(m.p == node.p):
                 if(len(node.R[node.p]) > 0):
                     contains = False
                     for message in node.R[node.p]:
@@ -246,7 +246,7 @@ with open("./tests.yaml", 'r') as file:
 
     # FOR TESTING PURPOSES -- run simulation 
     # any outputs equal to -1 represent crashed nodes  
-    #outputs = simulation(60, 0.3, 11, 1)
+    #outputs = simulation(60, 0.5, 11, 1)
     #for i in range(len(outputs)):
     #    print("Node ", i, "made it to p_end at round: ", outputs[i])
 
