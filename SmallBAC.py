@@ -125,16 +125,21 @@ with open("./tests.yaml", 'r') as file:
             for q in range(node.i, (n - 1) * n + node.i + 1, n):
                 messageTuple = channel[q].get()
                 message = messageTuple[0]
-                if(not(dropProbability == -1)):
-                    if(not(drop(dropProbability))):
-                        if(message.p == -1):
-                            break
-                        messages[node.i].append(message)
+                if(round % 2 == 1):
+                    if(not(dropProbability == -1)):
+                        if(not(drop(dropProbability))):
+                            if(message.p == -1):
+                                break
+                            messages[node.i].append(message)
+                    else:
+                        if(not(drop(messageTuple[1]))):
+                            if(message.p == -1):
+                                break
+                            messages[node.i].append(message)
                 else:
-                    if(not(drop(messageTuple[1]))):
-                        if(message.p == -1):
-                            break
-                        messages[node.i].append(message)
+                    if(message.p == -1):
+                        break
+                    messages[node.i].append(message)
         for node in nodes:
             if(node not in crashedNodes):
                 out = smallBAC(node, messages[node.i], n, f, p_end)
@@ -159,16 +164,21 @@ with open("./tests.yaml", 'r') as file:
                         message.v = 1
                     if(node.v < message.v):
                         message.v = 0
-                if(not(dropProbability == -1)):
-                    if(not(drop(dropProbability))):
-                        if(message.p == -1):
-                            break
-                        messages[node.i].append(message)
+                if(round % 2 == 1):
+                    if(not(dropProbability == -1)):
+                        if(not(drop(dropProbability))):
+                            if(message.p == -1):
+                                break
+                            messages[node.i].append(message)
+                    else:
+                        if(not(drop(messageTuple[1]))):
+                            if(message.p == -1):
+                                break
+                            messages[node.i].append(message)
                 else:
-                    if(not(drop(messageTuple[1]))):
-                        if(message.p == -1):
-                            break
-                        messages[node.i].append(message)
+                    if(message.p == -1):
+                        break
+                    messages[node.i].append(message)
         for node in nodes:
             if(node not in crashedNodes):
                 out = smallBAC(node, messages[node.i], n, f, p_end)
@@ -242,7 +252,7 @@ with open("./tests.yaml", 'r') as file:
             
     # run simulation -- for quick testing
     # any outputs equal to -1 represent crashed nodes  
-    #outputs = simulation(100, -1, 10, 2)
+    #outputs = simulation(60, 0.3, 15, 1)
     #for i in range(len(outputs)):
     #    print("Node ", i, "made it to p_end at round: ", outputs[i])
 

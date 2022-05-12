@@ -117,18 +117,25 @@ with open("./tests.yaml", 'r') as file:
             for q in range(node.i, (n - 1) * n + node.i + 1, n):
                 messageTuple = channel[q].get()
                 messageSet = messageTuple[0]
-                if(not(dropProbability == -1)):
-                    if(not(drop(dropProbability))):
-                        for message in messageSet:
-                            if(message.p == -1):
-                                break
-                            messages[node.i].append(message)
+                if(round % 2 == 1):
+                    if(not(dropProbability == -1)):
+                        if(not(drop(dropProbability))):
+                            for message in messageSet:
+                                if(message.p == -1):
+                                    break
+                                messages[node.i].append(message)
+                    else:
+                        if(not(drop(messageTuple[1]))):
+                            for message in messageSet:
+                                if(message.p == -1):
+                                    break
+                                messages[node.i].append(message)
                 else:
-                    if(not(drop(messageTuple[1]))):
-                        for message in messageSet:
-                            if(message.p == -1):
-                                break
-                            messages[node.i].append(message)
+                    for message in messageSet:
+                        if(message.p == -1):
+                            break
+                    messages[node.i].append(message)
+
         for node in nodes: 
             if(node not in crashedNodes):
                 out = algBAC(node, p_end, messages[node.i], n, f)
@@ -154,18 +161,24 @@ with open("./tests.yaml", 'r') as file:
                             message.v = 1
                         if(node.v < message.v):
                             message.v = 0
-                if(not(dropProbability == -1)):
-                    if(not(drop(dropProbability))):
-                        for message in messageSet:
-                            if(message.p == -1):
-                                break
-                            messages[node.i].append(message)
+                if(round % 2 == 1):
+                    if(not(dropProbability == -1)):
+                        if(not(drop(dropProbability))):
+                            for message in messageSet:
+                                if(message.p == -1):
+                                    break
+                                messages[node.i].append(message)
+                    else:
+                        if(not(drop(messageTuple[1]))):
+                            for message in messageSet:
+                                if(message.p == -1):
+                                    break
+                                messages[node.i].append(message)
                 else:
-                    if(not(drop(messageTuple[1]))):
-                        for message in messageSet:
-                            if(message.p == -1):
-                                break
-                            messages[node.i].append(message)
+                    for message in messageSet:
+                        if(message.p == -1):
+                            break
+                        messages[node.i].append(message)                    
         for node in nodes:
             if(node not in crashedNodes):
                 out = algBAC(node, p_end, messages[node.i], n, f)
@@ -246,7 +259,7 @@ with open("./tests.yaml", 'r') as file:
 
     # FOR TESTING PURPOSES -- run simulation 
     # any outputs equal to -1 represent crashed nodes  
-    #outputs = simulation(60, 0.5, 11, 1)
+    #outputs = simulation(60, 0.4, 11, 2)
     #for i in range(len(outputs)):
     #    print("Node ", i, "made it to p_end at round: ", outputs[i])
 
