@@ -1,3 +1,4 @@
+import initialize2DArray
 import math
 import matplotlib.pyplot as plt
 import Message
@@ -16,6 +17,8 @@ with open("./tests.yaml", 'r') as file:
     crashProbability = settings['crashProbability']
     randomSeed = settings['randomSeed']
     strategy = settings['strategy']
+    inGroup = settings['inGroup']
+    outGroup = settings['outGroup']
 
     random.seed(randomSeed)
 
@@ -44,23 +47,6 @@ with open("./tests.yaml", 'r') as file:
         for node in nodes:
             node.R[node.i] = 1
         return nodes
-
-    # initializes the matrix of individual communication link probabilities for in- and out-gtroups
-    def initialize2DArray(inGroup, outGroup, n):
-        matrix = [[] for i in range(n)]
-        for i in range(100):
-            for j in range(100):
-                if(i <= 33 and j <= 33):
-                    matrix[i].append(inGroup)
-                else:
-                    if(33 < i <= 66 and 33 < j <= 66):
-                        matrix[i].append(inGroup)
-                    else:
-                        if(66 < i <= 99 and 66 < j <= 99):
-                            matrix[i].append(inGroup)
-                        else:
-                            matrix[i].append(outGroup)
-        return matrix
 
     # calculate p_end according to Equation 2
     def calcPEnd(e):
@@ -132,23 +118,26 @@ with open("./tests.yaml", 'r') as file:
                 broadcast(node, probabilityMatrix, n)
             else:
                 broadcast1_byzantine(node, probabilityMatrix, n)
+        messages = [[] for i in range(n)]
+        for node in nodes:
+            #if(node not in crashedNodes):
+            #messages = []
+            for q in range(node.i, (n - 1) * n + node.i + 1, n):
+                messageTuple = channel[q].get()
+                message = messageTuple[0]
+                if(not(dropProbability == -1)):
+                    if(not(drop(dropProbability))):
+                        if(message.p == -1):
+                            break
+                        messages[node.i].append(message)
+                else:
+                    if(not(drop(messageTuple[1]))):
+                        if(message.p == -1):
+                            break
+                        messages[node.i].append(message)
         for node in nodes:
             if(node not in crashedNodes):
-                messages = []
-                for q in range(node.i, (n - 1) * n + node.i + 1, n):
-                    messageTuple = channel[q].get()
-                    message = messageTuple[0]
-                    if(not(dropProbability == -1)):
-                        if(not(drop(dropProbability))):
-                            if(message.p == -1):
-                                break
-                            messages.append(message)
-                    else:
-                        if(not(drop(messageTuple[1]))):
-                            if(message.p == -1):
-                                break
-                            messages.append(message)
-                out = smallBAC(node, messages, n, f, p_end)
+                out = smallBAC(node, messages[node.i], n, f, p_end)
                 if(out == 1):
                     if(rounds[node.i] == -1):
                         rounds[node.i] = round 
@@ -159,8 +148,9 @@ with open("./tests.yaml", 'r') as file:
     def simulation_byzantine2(nodes, crashedNodes, dropProbability, probabilityMatrix, round, rounds, p_end, n, f):
         for node in nodes:
             broadcast(node, probabilityMatrix, n)
+        messages = [[] for i in range(n)]
         for node in nodes:
-            messages = []
+            #messages = []
             for q in range(node.i, (n - 1) * n + node.i + 1, n):
                 messageTuple = channel[q].get()
                 message = messageTuple[0]
@@ -173,16 +163,18 @@ with open("./tests.yaml", 'r') as file:
                     if(not(drop(dropProbability))):
                         if(message.p == -1):
                             break
-                        messages.append(message)
+                        messages[node.i].append(message)
                 else:
                     if(not(drop(messageTuple[1]))):
                         if(message.p == -1):
                             break
-                        messages.append(message)
-            out = smallBAC(node, messages, n, f, p_end)
-            if(out == 1):
-                if(rounds[node.i] == -1):
-                    rounds[node.i] = round
+                        messages[node.i].append(message)
+        for node in nodes:
+            if(node not in crashedNodes):
+                out = smallBAC(node, messages[node.i], n, f, p_end)
+                if(out == 1):
+                    if(rounds[node.i] == -1):
+                        rounds[node.i] = round
 
     # simulation structure
     def simulation(n, dropProbability, f, strategy):
@@ -192,7 +184,7 @@ with open("./tests.yaml", 'r') as file:
         complete = False
         round = 1
         nodes = initializeSmallBAC(n)
-        probabilityMatrix = initialize2DArray(0.1, 0.5, n)
+        probabilityMatrix = initialize2DArray.initialize2DArray(inGroup, outGroup, n)
         epsilon = 0.001
         p_end = int(calcPEnd(epsilon)) + 1
 
@@ -227,6 +219,9 @@ with open("./tests.yaml", 'r') as file:
                 if(checkEAgreement(nodes, crashedNodes, epsilon)):
                     #print("Epsilon-agreement is satisfied.")
                     return rounds
+                else:
+                    print("ERROR: Epsilon-agreement is not satisfied")
+                    return rounds
             else:
                 round += 1      
 
@@ -247,7 +242,7 @@ with open("./tests.yaml", 'r') as file:
             
     # run simulation -- for quick testing
     # any outputs equal to -1 represent crashed nodes  
-    #outputs = simulation(100, 0.1, 10, 2)
+    #outputs = simulation(100, -1, 10, 2)
     #for i in range(len(outputs)):
     #    print("Node ", i, "made it to p_end at round: ", outputs[i])
 

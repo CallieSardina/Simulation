@@ -1,3 +1,4 @@
+import initialize2DArray
 import math
 import matplotlib.pyplot as plt
 import Message
@@ -15,6 +16,8 @@ with open("./tests.yaml", 'r') as file:
     numFaultyNodes = settings['numFaultyNodes']
     crashProbability = settings['crashProbability']
     randomSeed = settings['randomSeed']
+    inGroup = settings['inGroup']
+    outGroup = settings['outGroup']
 
     random.seed(randomSeed)
 
@@ -45,23 +48,6 @@ with open("./tests.yaml", 'r') as file:
             x_i = random.random()
             nodes.append(NodeAC.NodeAC(i, x_i, 0, [[] for i in range(p_end + 1)]))
         return nodes
-
-        # initialized the matrix of individual communication link probabilities for in- and out-gtroups
-    def initialize2DArray(inGroup, outGroup, n):
-        matrix = [[] for i in range(n)]
-        for i in range(100):
-            for j in range(100):
-                if(i <= 33 and j <= 33):
-                    matrix[i].append(inGroup)
-                else:
-                    if(33 < i <= 66 and 33 < j <= 66):
-                        matrix[i].append(inGroup)
-                    else:
-                        if(66 < i <= 99 and 66 < j <= 99):
-                            matrix[i].append(inGroup)
-                        else:
-                            matrix[i].append(outGroup)
-        return matrix
 
     # when x is in phase p, x will broadcast  its state from phase 0 to phase p 
     # in every round of phase p 
@@ -107,30 +93,36 @@ with open("./tests.yaml", 'r') as file:
             return 1
         
     def runVaryingProbabilities(nodes, crashedNodes, round, rounds, p_end, n, f):
+        messages = [[] for i in range(n)]
+        for node in nodes: 
+            #if(node not in crashedNodes):
+                #messages = []
+            for q in range(node.i, (n - 1) * n + node.i + 1, n):
+                messageTuple = channel[q].get()
+                messageSet = messageTuple[0]
+                if(not(drop(messageTuple[1]))):
+                    for message in messageSet:
+                        messages[node.i].append(message)
         for node in nodes: 
             if(node not in crashedNodes):
-                messages = []
-                for q in range(node.i, (n - 1) * n + node.i + 1, n):
-                    messageTuple = channel[q].get()
-                    messageSet = messageTuple[0]
-                    if(not(drop(messageTuple[1]))):
-                        for message in messageSet:
-                            messages.append(message)
-                out = algAC(node, p_end, messages, n, f)
+                out = algAC(node, p_end, messages[node.i], n, f)
                 if(out == 1):
                     if(rounds[node.i] == -1):
                         rounds[node.i] = round
 
     def runConstantProbabilities(dropProbability, nodes, crashedNodes, round, rounds, p_end, n, f):
+        messages = [[] for i in range(n)]
+        for node in nodes: 
+            #if(node not in crashedNodes):
+                #messages = []
+            for q in range(node.i, (n - 1) * n + node.i + 1, n):
+                messageSet = channel[q].get()[0]
+                if(not(drop(dropProbability))):
+                    for message in messageSet:
+                        messages[node.i].append(message)
         for node in nodes: 
             if(node not in crashedNodes):
-                messages = []
-                for q in range(node.i, (n - 1) * n + node.i + 1, n):
-                    messageSet = channel[q].get()[0]
-                    if(not(drop(dropProbability))):
-                        for message in messageSet:
-                            messages.append(message)
-                out = algAC(node, p_end, messages, n, f)
+                out = algAC(node, p_end, messages[node.i], n, f)
                 if(out == 1):
                     if(rounds[node.i] == -1):
                         rounds[node.i] = round
@@ -144,7 +136,7 @@ with open("./tests.yaml", 'r') as file:
         epsilon = 0.001
         p_end = int(calcPEnd(epsilon)) + 1
         nodes = initializeAC(n, p_end)
-        probabilityMatrix = initialize2DArray(0.1, 0.5, n)
+        probabilityMatrix = initialize2DArray.initialize2DArray(inGroup, outGroup, n)
 
         # for output data - the rounds it took node i to reach p_end is stores in rounds[i]
         rounds = [-1 for i in range(n)]
@@ -179,6 +171,10 @@ with open("./tests.yaml", 'r') as file:
                     complete = True
             if(complete):
                 if(checkEAgreement(nodes, crashedNodes, epsilon)):
+                    #print("Epsilon-agreement is satisfied.")
+                    return rounds
+                else:
+                    print("ERROR: Epsilon-agreement is not satisfied")
                     return rounds
             else:
                 round += 1      
@@ -259,7 +255,7 @@ with open("./tests.yaml", 'r') as file:
             getNumCrashes(sim60)
             sim1050 = simulation(numNodes, -1, numFaultyNodes)
             final_round_1050.append(max(sim1050))
-            getNumCrashes(sim60)
+            getNumCrashes(sim1050)
         resultsDict.update({0.1 : final_round10})
         resultsDict.update({0.2 : final_round20})
         resultsDict.update({0.3 : final_round30})
