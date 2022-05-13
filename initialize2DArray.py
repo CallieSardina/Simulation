@@ -15,3 +15,18 @@ def initialize2DArray(inGroup, outGroup, n):
                     else:
                         matrix[i].append(outGroup)
     return matrix
+
+# initialized the matrix of individual communication link probabilities for in- and out-gtroups
+def initialize2DArray_2groups(inGroup, outGroup, n, p_in):
+    frac = n * p_in
+    matrix = [[] for i in range(n)]
+    for i in range(n):
+        for j in range(n):
+            if(i <= frac and j <= frac):
+                matrix[i].append(inGroup)
+            else:
+                matrix[i].append(outGroup)
+    return matrix
+
+
+
